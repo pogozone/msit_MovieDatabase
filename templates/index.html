@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoviWeb - Startseite</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #090b14;
+            --panel: #111624;
+            --line: #28334a;
+            --cyan: #42f5e9;
+            --pink: #ff4fd8;
+            --text: #edf2ff;
+            --muted: #9aa8bf;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            display: grid;
+            min-height: 100vh;
+            margin: 0;
+            padding: clamp(1rem, 5vw, 4rem);
+            place-items: center;
+            background: radial-gradient(ellipse at 85% 0%, #211239 0, transparent 38%), var(--bg);
+            color: var(--text);
+            font: 16px/1.5 system-ui, sans-serif;
+        }
+
+        main { width: min(100%, 720px); }
+
+        h1 {
+            margin: 0 0 2rem;
+            color: var(--cyan);
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            line-height: 1.15;
+            text-shadow: 0 0 18px #42f5e955;
+        }
+
+        h2 { margin: 0 0 1rem; color: var(--pink); font-size: 1.2rem; }
+
+        .panel {
+            margin-bottom: 1.25rem;
+            padding: clamp(1rem, 4vw, 1.5rem);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--panel) 94%, transparent);
+            box-shadow: 0 12px 40px #0005, 0 0 22px #42f5e90b;
+        }
+
+        form { display: flex; gap: .75rem; }
+
+        input, button {
+            min-height: 46px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            padding: .6rem .75rem;
+            background: #090d18;
+            color: var(--text);
+        }
+
+        input:focus-visible, button:focus-visible, a:focus-visible {
+            outline: 2px solid var(--cyan);
+            outline-offset: 3px;
+        }
+
+        button {
+            padding: .6rem 1rem;
+            border-color: var(--cyan);
+            background: var(--cyan);
+            color: #071014;
+            cursor: pointer;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        button:hover { background: #a1fff7; }
+
+        ul { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+
+        li a {
+            display: block;
+            padding: .8rem 1rem;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #090d18;
+            color: var(--cyan);
+            text-decoration: none;
+            transition: border-color .2s, color .2s, transform .2s;
+        }
+
+        li a:hover {
+            transform: translateX(3px);
+            border-color: var(--pink);
+            color: var(--pink);
+        }
+
+        li.empty { color: var(--muted); }
+
+        @media (max-width: 520px) {
+            body { padding: 1.25rem 1rem; }
+            form { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+    <h1>Willkommen bei MoviWeb 🎬</h1>
+
+    <section class="panel">
+    <h2>Neuen Nutzer anlegen</h2>
+    <form action="/add_user" method="POST">
+        <input type="text" name="name" placeholder="Dein Name" required>
+        <button type="submit">Nutzer erstellen</button>
+    </form>
+    </section>
+
+    <section class="panel">
+    <h2>Vorhandenen Nutzer auswählen</h2>
+    <ul>
+        {% for user in users %}
+            <li><a href="/user/{{ user.id }}">{{ user.name }}</a></li>
+        {% else %}
+            <li class="empty">Noch keine Nutzer vorhanden. Leg oben einen an!</li>
+        {% endfor %}
+    </ul>
+    </section>
+    </main>
+</body>
+</html>

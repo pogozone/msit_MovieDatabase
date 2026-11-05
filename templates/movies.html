@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ user.name }}'s Filmbibliothek</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #090b14;
+            --panel: #111624;
+            --line: #28334a;
+            --cyan: #42f5e9;
+            --pink: #ff4fd8;
+            --text: #edf2ff;
+            --muted: #9aa8bf;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: clamp(1rem, 5vw, 4rem);
+            background: radial-gradient(ellipse at 85% 0%, #211239 0, transparent 38%), var(--bg);
+            color: var(--text);
+            font: 16px/1.5 system-ui, sans-serif;
+        }
+
+        main { width: min(100%, 1100px); margin: 0 auto; }
+        a { color: var(--cyan); text-decoration: none; }
+        a:hover { color: var(--pink); }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: var(--muted);
+        }
+
+        h1 {
+            margin: 0 0 2rem;
+            color: var(--cyan);
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            text-shadow: 0 0 18px #42f5e955;
+        }
+
+        h3 { margin: 0 0 1rem; color: var(--pink); }
+
+        .panel {
+            margin: 0 0 1.5rem;
+            padding: clamp(1rem, 3vw, 1.5rem);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--panel) 94%, transparent);
+            box-shadow: 0 12px 40px #0005, 0 0 22px #42f5e90b;
+        }
+
+        .add-form { display: flex; gap: .75rem; }
+
+        input, button {
+            min-height: 44px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            padding: .6rem .75rem;
+            background: #090d18;
+            color: var(--text);
+        }
+
+        input:focus-visible, button:focus-visible, a:focus-visible {
+            outline: 2px solid var(--cyan);
+            outline-offset: 3px;
+        }
+
+        button {
+            padding: .6rem 1rem;
+            border-color: var(--cyan);
+            background: var(--cyan);
+            color: #071014;
+            cursor: pointer;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        button:hover { background: #a1fff7; }
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+            gap: 1.25rem;
+        }
+
+        .movie-card {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #0c111d;
+            box-shadow: 0 12px 30px #0004;
+            transition: transform .2s, border-color .2s, box-shadow .2s;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-4px);
+            border-color: #42f5e977;
+            box-shadow: 0 16px 36px #0006, 0 0 18px #42f5e916;
+        }
+
+        .poster, .poster-fallback {
+            display: block;
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            background: linear-gradient(145deg, #211239, #0b343b);
+        }
+
+        .poster-fallback {
+            display: grid;
+            place-items: center;
+            padding: 1rem;
+            color: var(--cyan);
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-align: center;
+            text-shadow: 0 0 18px #42f5e955;
+        }
+
+        .movie-details { padding: 1rem; }
+        .movie-details h4 { margin: 0 0 .75rem; color: var(--cyan); font-size: 1.1rem; }
+        .movie-fields { display: grid; gap: .55rem; }
+        .movie-fields label { color: var(--muted); font-size: .78rem; }
+        .movie-fields input { display: block; min-width: 0; margin-top: .2rem; }
+        .movie-actions { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: .9rem; }
+        .movie-actions button { padding-inline: .75rem; }
+        .movie-actions a { color: var(--pink); }
+        .empty { grid-column: 1 / -1; color: var(--muted); text-align: center; }
+
+        @media (max-width: 600px) {
+            body { padding: 1.25rem 1rem; }
+            .add-form { flex-direction: column; }
+            .add-form button { width: 100%; }
+            .panel { padding: 1rem; }
+            .movie-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+        }
+    </style>
+</head>
+<body>
+    <main>
+    <a class="back-link" href="/">← Zurück zur Startseite</a>
+    <h1>Filmbibliothek von {{ user.name }}</h1>
+
+    <section class="panel">
+        <h3>Film hinzufügen (automatischer OMDb-Abruf)</h3>
+    <form class="add-form" action="/user/{{ user.id }}/add" method="POST">
+        <input type="text" name="title" placeholder="Filmtitel (z.B. Interstellar)" required>
+        <button type="submit">Film hinzufügen</button>
+    </form>
+    </section>
+
+    <section class="panel">
+    <h3>Deine Filme</h3>
+    <div class="movie-grid">
+        {% for movie in movies %}
+        <article class="movie-card">
+            {% if movie.poster_url %}
+            <img class="poster" src="{{ movie.poster_url }}" alt="Cover von {{ movie.title }}" loading="lazy">
+            {% else %}
+            <div class="poster-fallback" role="img" aria-label="Kein Cover verfügbar für {{ movie.title }}">{{ movie.title }}</div>
+            {% endif %}
+            <div class="movie-details">
+                <h4>{{ movie.title }}</h4>
+            <form action="/movie/update/{{ movie.id }}/{{ user.id }}" method="POST">
+                <div class="movie-fields">
+                    <label>Titel<input type="text" name="title" value="{{ movie.title }}"></label>
+                    <label>Jahr<input type="text" name="year" value="{{ movie.year }}"></label>
+                    <label>Regisseur<input type="text" name="director" value="{{ movie.director }}"></label>
+                    <label>Genre<input type="text" name="genre" value="{{ movie.genre }}"></label>
+                </div>
+                <div class="movie-actions">
+                    <button type="submit">Speichern</button>
+                    <a href="/movie/delete/{{ movie.id }}/{{ user.id }}">Löschen</a>
+                </div>
+            </form>
+            </div>
+        </article>
+        {% else %}
+        <p class="empty">Bisher keine Filme in deiner Liste.</p>
+        {% endfor %}
+    </div>
+    </section>
+    </main>
+</body>
+</html>
