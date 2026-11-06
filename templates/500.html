@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>500 – Serverfehler | MoviWeb</title>
+    <style>
+        :root { color-scheme: dark; --cyan: #42f5e9; --pink: #ff4fd8; --text: #edf2ff; --muted: #9aa8bf; }
+        * { box-sizing: border-box; }
+        body {
+            display: grid; min-height: 100vh; margin: 0; padding: 1.25rem;
+            place-items: center; background: radial-gradient(ellipse at 85% 0%, #211239 0, transparent 38%), #090b14;
+            color: var(--text); font: 16px/1.5 system-ui, sans-serif; text-align: center;
+        }
+        main { width: min(100%, 560px); padding: clamp(1.5rem, 6vw, 3rem); border: 1px solid #28334a; border-radius: 12px; background: #111624; }
+        .code { margin: 0; color: var(--pink); font-size: clamp(4rem, 18vw, 7rem); font-weight: 900; line-height: 1; text-shadow: 0 0 24px #ff4fd855; }
+        h1 { color: var(--cyan); }
+        p { color: var(--muted); }
+        a { display: inline-block; margin-top: 1rem; padding: .7rem 1rem; border-radius: 7px; background: var(--cyan); color: #071014; font-weight: 700; text-decoration: none; }
+        a:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+    </style>
+</head>
+<body>
+    <main>
+        <p class="code">500</p>
+        <h1>Interner Serverfehler</h1>
+        <p>Beim Bearbeiten der Anfrage ist etwas schiefgelaufen. Der Fehler wurde protokolliert. Bitte versuche es später erneut.</p>
+        <a href="/">Zurück zu MoviWeb</a>
+    </main>
+</body>
+</html>

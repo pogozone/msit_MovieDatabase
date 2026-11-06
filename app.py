@@ -1,10 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for
+import os
+
+from flask import Flask, abort, flash, render_template, request, redirect, url_for
 import requests
 from sqlalchemy import inspect, text
 from database import db
 from models import User, Movie
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-me")
 
 # Konfiguration der SQLite-Datenbank
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///moviweb.db"
@@ -35,17 +38,19 @@ def index():
 @app.route("/add_user", methods=["POST"])
 def add_user():
     """Neuen Nutzer anlegen."""
-    name = request.form.get("name")
-    if name:
-        # Prüfen, ob der Nutzer schon existiert
-        statement = db.select(User).filter_by(name=name)
-        existing_user = db.session.execute(statement).scalar_one_or_none()
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Bitte gib einen Namen ein.", "error")
+        return redirect(url_for("index"))
 
-        if not existing_user:
-            new_user = User(name=name)
-            db.session.add(new_user)
-            db.session.commit()
-
+    statement = db.select(User).filter_by(name=name)
+    existing_user = db.session.execute(statement).scalar_one_or_none()
+    if existing_user:
+        flash("Dieser Nutzername ist bereits vergeben.", "error")
+    else:
+        db.session.add(User(name=name))
+        db.session.commit()
+        flash(f"Nutzer „{name}“ wurde angelegt.", "success")
     return redirect(url_for("index"))
 
 
@@ -54,17 +59,23 @@ def user_movies(user_id):
     """Filmbibliothek des Nutzers anzeigen."""
     user = db.session.get(User, user_id)
     if not user:
-        return "Nutzer nicht gefunden", 404
-
-    return render_template("movies.html", user=user, movies=user.movies)
+        abort(404)
+    movies = user.movies
+    return render_template("movies.html", user=user, movies=movies)
 
 
 @app.route("/user/<int:user_id>/add", methods=["POST"])
 def add_movie(user_id):
     """Film über OMDb API suchen und speichern."""
-    movie_title = request.form.get("title")
+    movie_title = request.form.get("title", "").strip()
+    if not movie_title:
+        flash("Bitte gib einen Filmtitel ein.", "error")
+        return redirect(url_for("user_movies", user_id=user_id))
 
-    if movie_title:
+    if not db.session.get(User, user_id):
+        abort(404)
+
+    try:
         response = requests.get(
             "https://www.omdbapi.com/",
             params={"t": movie_title, "apikey": OMDB_API_KEY},
@@ -72,33 +83,31 @@ def add_movie(user_id):
         )
         response.raise_for_status()
         data = response.json()
+    except requests.RequestException:
+        flash("OMDb ist gerade nicht erreichbar. Bitte versuche es später erneut.", "error")
+        return redirect(url_for("user_movies", user_id=user_id))
 
-        if data.get("Response") == "True":
-            title = data.get("Title")
-            year = data.get("Year")
-            director = data.get("Director")
-            genre = data.get("Genre")
-            poster_url = data.get("Poster")
-            if poster_url == "N/A":
-                poster_url = None
+    if data.get("Response") != "True":
+        if data.get("Error") == "Movie not found!":
+            flash(f"Zu „{movie_title}“ wurde kein Film gefunden.", "error")
         else:
-            title = movie_title
-            year = "Unbekannt"
-            director = "Unbekannt"
-            genre = "Unbekannt"
-            poster_url = None
+            flash("OMDb konnte den Film nicht suchen. Bitte prüfe die API-Konfiguration.", "error")
+        return redirect(url_for("user_movies", user_id=user_id))
 
-        new_movie = Movie(
-            title=title,
-            year=year,
-            director=director,
-            genre=genre,
-            poster_url=poster_url,
-            user_id=user_id
-        )
-        db.session.add(new_movie)
-        db.session.commit()
-
+    poster_url = data.get("Poster")
+    if poster_url == "N/A":
+        poster_url = None
+    new_movie = Movie(
+        title=data.get("Title") or movie_title,
+        year=data.get("Year"),
+        director=data.get("Director"),
+        genre=data.get("Genre"),
+        poster_url=poster_url,
+        user_id=user_id
+    )
+    db.session.add(new_movie)
+    db.session.commit()
+    flash(f"„{new_movie.title}“ wurde hinzugefügt.", "success")
     return redirect(url_for("user_movies", user_id=user_id))
 
 
@@ -106,9 +115,11 @@ def add_movie(user_id):
 def delete_movie(movie_id, user_id):
     """Film löschen."""
     movie = db.session.get(Movie, movie_id)
-    if movie:
-        db.session.delete(movie)
-        db.session.commit()
+    if not movie or movie.user_id != user_id:
+        abort(404)
+    db.session.delete(movie)
+    db.session.commit()
+    flash("Film wurde gelöscht.", "success")
     return redirect(url_for("user_movies", user_id=user_id))
 
 
@@ -116,14 +127,25 @@ def delete_movie(movie_id, user_id):
 def update_movie(movie_id, user_id):
     """Filmdaten aktualisieren."""
     movie = db.session.get(Movie, movie_id)
-    if movie:
-        movie.title = request.form.get("title")
-        movie.year = request.form.get("year")
-        movie.director = request.form.get("director")
-        movie.genre = request.form.get("genre")
-        db.session.commit()
-
+    if not movie or movie.user_id != user_id:
+        abort(404)
+    movie.title = request.form.get("title")
+    movie.year = request.form.get("year")
+    movie.director = request.form.get("director")
+    movie.genre = request.form.get("genre")
+    db.session.commit()
+    flash("Filmdaten wurden gespeichert.", "success")
     return redirect(url_for("user_movies", user_id=user_id))
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return render_template("500.html"), 500
 
 
 if __name__ == "__main__":

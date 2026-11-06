@@ -54,6 +54,10 @@
             box-shadow: 0 12px 40px #0005, 0 0 22px #42f5e90b;
         }
 
+        .notice { margin: 0 0 1rem; padding: .8rem 1rem; border: 1px solid; border-radius: 7px; }
+        .notice.success { border-color: var(--cyan); color: var(--cyan); }
+        .notice.error { border-color: var(--pink); color: #ff9be9; }
+
         .add-form { display: flex; gap: .75rem; }
 
         input, button {
@@ -150,6 +154,10 @@
     <main>
     <a class="back-link" href="/">← Zurück zur Startseite</a>
     <h1>Filmbibliothek von {{ user.name }}</h1>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+        <p class="notice {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+    {% endfor %}
 
     <section class="panel">
         <h3>Film hinzufügen (automatischer OMDb-Abruf)</h3>
